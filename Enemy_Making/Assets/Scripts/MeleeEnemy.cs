@@ -5,17 +5,17 @@ using UnityEngine.AI;
 
 public class MeleeEnemy : MonoBehaviour
 {
-    [SerializeField] Transform target; // Player's position
-    [SerializeField] float safeDistance = 10f; // Range for "Run" animation
-    [SerializeField] float stopDistance = 1.5f; // Range for "Attack" animation
-    NavMeshAgent agent;
-    SpriteRenderer spriteRenderer;
-    Animator animator;
-
+    [SerializeField] private Transform target; // Player's position
+    [SerializeField] private float safeDistance = 10f; // Range for "Run" animation
+    [SerializeField] private float stopDistance = 1.5f; // Range for "Attack" animation
     [SerializeField] private float attackCooldown = 2f; // Cooldown between attacks
-    private float lastAttackTime = -Mathf.Infinity; // Time of the last attack
 
-    private bool isPlayerInRange = false; // Track if the player is within the red circle
+    private NavMeshAgent agent;
+    private SpriteRenderer spriteRenderer;
+    private Animator animator;
+
+    private float lastAttackTime = -Mathf.Infinity; // Time of the last attack
+    private bool isPlayerInRange = false; // Track if the player is within attack range
 
     private void OnDrawGizmos()
     {
@@ -55,42 +55,37 @@ public class MeleeEnemy : MonoBehaviour
         {
             float distanceToTarget = Vector3.Distance(transform.position, target.position);
 
-            // Switch to "Run" animation if player is within safeDistance
+            // Handle movement and animations based on the player's distance
             if (distanceToTarget <= safeDistance && distanceToTarget > stopDistance)
             {
-                isPlayerInRange = false; // Player not in attack range
+                // Player within safeDistance but not stopDistance
+                isPlayerInRange = false;
                 agent.SetDestination(target.position);
-                animator.SetBool("Run", true);
-                animator.SetBool("Idle", false);
-                animator.SetBool("Attack 1", false);
+                SetAnimationState(run: true, idle: false);
             }
-
-            // Stop moving and attack if player is within stopDistance
             else if (distanceToTarget <= stopDistance)
             {
+                // Player within attack range
                 isPlayerInRange = true;
                 agent.ResetPath();
-                animator.SetBool("Run", false);
-                animator.SetBool("Idle", false);
+                SetAnimationState(run: false, idle: false);
 
+                // Attack if cooldown has elapsed
                 if (Time.time >= lastAttackTime + attackCooldown)
                 {
                     PerformRandomAttack();
                     lastAttackTime = Time.time;
                 }
             }
-
-            // Switch to "Idle" animation if player is out of range
             else
             {
+                // Player out of range
                 isPlayerInRange = false;
                 agent.ResetPath();
-                animator.SetBool("Run", false);
-                animator.SetBool("Idle", true);
-                animator.SetBool("Attack 1", false);
+                SetAnimationState(run: false, idle: true);
             }
 
-            // Flip sprite based on the player's position
+            // Flip sprite based on player's position
             FlipSprite(target.position.x);
         }
     }
@@ -99,11 +94,8 @@ public class MeleeEnemy : MonoBehaviour
     private void PerformRandomAttack()
     {
         int randomAttack = Random.Range(1, 4); // Randomly choose between 1, 2, or 3
-
-        // Trigger the corresponding attack animation
         animator.SetTrigger($"Attack {randomAttack}");
-
-        Debug.Log("Performing attack: Enemy_Attack_" + randomAttack);
+        Debug.Log($"Performing attack: Attack_{randomAttack}");
     }
 
     // Flip the sprite based on the player's position
@@ -113,5 +105,22 @@ public class MeleeEnemy : MonoBehaviour
         {
             spriteRenderer.flipX = targetX <= transform.position.x;
         }
+    }
+
+    // Set animation state for "Run" and "Idle"
+    private void SetAnimationState(bool run, bool idle)
+    {
+        if (animator != null)
+        {
+            animator.SetBool("Run", run);
+            animator.SetBool("Idle", idle);
+        }
+    }
+
+    // Animation event handler for "GolemEndAbility"
+    public void GolemEndAbility()
+    {
+        // Logic to handle the end of an attack or ability animation
+        Debug.Log("Animation event: GolemEndAbility triggered.");
     }
 }
